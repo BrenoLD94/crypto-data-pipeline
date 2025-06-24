@@ -1,0 +1,15 @@
+# Conteúdo para o arquivo .gitignore
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDEs
+.idea/
+.vscode/
+
+# Arquivos de segredos
+secrets.env
+*.local
