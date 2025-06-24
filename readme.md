@@ -1,17 +1,22 @@
-Crypto Data Pipeline
+# Crypto Data Pipeline
+
 Este projeto implementa um pipeline de dados em tempo real para capturar, processar e visualizar dados de criptomoedas (BTC/USDT) da exchange Binance.
+
+## Visão Geral da Arquitetura
 
 A arquitetura é baseada em microserviços orquestrados com Docker Compose e inclui:
 
-Coleta: Um produtor Python que se conecta à API de WebSocket da Binance.
-Ingestão: Apache Kafka para atuar como um buffer de mensagens resiliente.
-Processamento: Apache Spark Streaming para realizar agregações e transformações em tempo real.
-Armazenamento: InfluxDB, um banco de dados de série temporal, para armazenar os dados processados.
-Visualização: Grafana para criar dashboards e visualizar os dados em tempo real.
-Estrutura do Projeto
-A organização dos arquivos e pastas segue o padrão de monorepo, separando o código da aplicação (src) das configurações de infraestrutura (infra).
+* **Coleta:** Um produtor Python que se conecta à API de WebSocket da Binance.
+* **Ingestão:** Apache Kafka para atuar como um buffer de mensagens resiliente.
+* **Processamento:** Apache Spark Streaming para realizar agregações e transformações em tempo real.
+* **Armazenamento:** InfluxDB, um banco de dados de série temporal, para armazenar os dados processados.
+* **Visualização:** Grafana para criar dashboards e visualizar os dados em tempo real.
 
+## Estrutura do Projeto
 
+A organização dos arquivos e pastas segue o padrão de monorepo, separando o código da aplicação (`src`) das configurações de infraestrutura (`infra`).
+
+```bash
 /crypto-data-pipeline/
 │
 ├── .env                    # Variáveis de ambiente para o Docker Compose (versões, etc.)
@@ -42,15 +47,25 @@ A organização dos arquivos e pastas segue o padrão de monorepo, separando o c
         │   └── processor.py
         ├── Dockerfile
         └── requirements.txt
+```
 
-Detalhamento dos Diretórios
-docker-compose.yml: Arquivo principal que define e conecta todos os serviços da aplicação (Kafka, Spark, Grafana, etc.).
-.env: Armazena variáveis de ambiente não sensíveis, como versões de imagens Docker, para serem usadas no docker-compose.yml.
-README.md: Este arquivo. A documentação central do projeto.
-infra/: Contém arquivos de configuração para as ferramentas de terceiro que usamos.
-grafana/provisioning: Configura o Grafana automaticamente na inicialização, criando a fonte de dados (datasource) para o InfluxDB e carregando os dashboards pré-definidos.
-influxdb/init.sh: Script de inicialização para o InfluxDB, responsável por criar o bucket inicial, organização e tokens de acesso.
-src/: Contém todo o código-fonte customizado desenvolvido para este projeto.
-producer/: O microsserviço Python responsável por se conectar à API da Binance via WebSocket, capturar os dados e produzi-los em um tópico Kafka.
-spark-processor/: O microsserviço contendo o job PySpark que consome os dados do Kafka, realiza o processamento e agregações, e salva o resultado no InfluxDB.
-Como Executar
+
+### Detalhamento dos Diretórios
+
+* **`docker-compose.yml`**: Arquivo principal que define e conecta todos os serviços da aplicação (Kafka, Spark, Grafana, etc.).
+* **`.env`**: Armazena variáveis de ambiente não sensíveis, como versões de imagens Docker, para serem usadas no `docker-compose.yml`.
+* **`README.md`**: Este arquivo. A documentação central do projeto.
+* **`infra/`**: Contém arquivos de configuração para as ferramentas de terceiro que usamos.
+    * **`grafana/provisioning`**: Configura o Grafana automaticamente na inicialização, criando a fonte de dados (datasource) para o InfluxDB e carregando os dashboards pré-definidos.
+    * **`influxdb/init.sh`**: Script de inicialização para o InfluxDB, responsável por criar o bucket inicial, organização e tokens de acesso.
+* **`src/`**: Contém todo o código-fonte customizado desenvolvido para este projeto.
+    * **`producer/`**: O microsserviço Python responsável por se conectar à API da Binance via WebSocket, capturar os dados e produzi-los em um tópico Kafka.
+    * **`spark-processor/`**: O microsserviço contendo o job PySpark que consome os dados do Kafka, realiza o processamento e agregações, e salva o resultado no InfluxDB.
+
+## Como Executar
+
+1.  Clone este repositório: `git clone https://github.com/BrenoLD94/crypto-data-pipeline.git`
+2.  Navegue até a pasta do projeto: `cd crypto-data-pipeline`
+3.  Configure suas variáveis de ambiente no arquivo `.env` (se necessário).
+4.  Suba todos os serviços com o Docker Compose: `docker-compose up -d --build`
+5.  Acesse a interface do Grafana em `http://localhost:3000`.
