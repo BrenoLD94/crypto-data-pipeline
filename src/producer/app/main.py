@@ -2,7 +2,7 @@ from confluent_kafka import Producer
 
 # https://developer.confluent.io/get-started/python/#build-producer
 def main():
-    producer_config = {"bootstrap.servers": "kafka:9092"}
+    producer_config = {"bootstrap.servers": "kafka:29092"}
     topic = "binance-trades-raw"
     key = "BTCUSDT"
     value = "minha primeira mensagem kafka!"
