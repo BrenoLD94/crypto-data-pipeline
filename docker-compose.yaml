@@ -20,7 +20,7 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092'
     volumes:
-      - ./infra/config.txt:/tmp/config.txt
+      - ./infra/kafka/config.txt:/tmp/config.txt
 
     
   producer:

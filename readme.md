@@ -32,9 +32,12 @@ A organização dos arquivos e pastas segue o padrão de monorepo, separando o c
 │   │       │   └── dashboard.yml
 │   │       └── datasources/
 │   │           └── datasource.yml
-│   └── influxdb/
-│       └── init.sh         # Script inicial para criar o bucket/usuário no InfluxDB
-│
+│   ├── influxdb/
+│   │    └── init.sh         # Script inicial para criar o bucket/usuário no InfluxDB
+|   │
+│   └── kafka/
+|        └── config.txt     # configuração para se conectar ao kafka
+|
 └── src/                    # Nosso código customizado
     ├── producer/           # O script que pega dados da Binance
     │   ├── app/
