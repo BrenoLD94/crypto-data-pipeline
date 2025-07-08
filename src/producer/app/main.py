@@ -29,9 +29,9 @@ KAFKA_TOPIC = "binance-trades-raw"
 def message_handler(_, message):
     data = json.loads(message)
 
-    key = data.get('s')
+    key = data['data'].get('s')
     print("--- MENSAGEM RECEBIDA DO WEBSOCKET ---")
-    print(message)
+    print("msg = ", message)
     print("key = ", key)
     
     if key:
