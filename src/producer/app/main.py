@@ -23,16 +23,10 @@ PRODUCER_CONFIG = {"bootstrap.servers": "kafka:29092"}
 PRODUCER = Producer(PRODUCER_CONFIG)
 KAFKA_TOPIC = "binance-trades-raw"
 
-# https://developer.confluent.io/get-started/python/#build-producer
-# https://github.com/binance/binance-futures-connector-python/blob/main/examples/websocket/um_futures/agg_trade.py
-
 def message_handler(_, message):
     data = json.loads(message)
 
     key = data['data'].get('s')
-    print("--- MENSAGEM RECEBIDA DO WEBSOCKET ---")
-    print("msg = ", message)
-    print("key = ", key)
     
     if key:
         print(f"Trade recebido para {key}: {message}")
@@ -44,7 +38,7 @@ def message_handler(_, message):
 def main():
     config_logging(logging, logging.DEBUG)
 
-    key = "btcusdt"#"BTCUSDT"
+    key = "btcusdt"
 
     # Crie a instância do BINANCE_CLIENT, passando o 'message_handler'
     binance_client = UMFuturesWebsocketClient(on_message=message_handler, is_combined=True)
@@ -57,8 +51,6 @@ def main():
         # A thread do WebSocket está rodando em segundo plano.
         # O loop principal pode apenas esperar.
         time.sleep(1)
-        print("estou no Loop!")
-
 
 
 if __name__ == "__main__":
