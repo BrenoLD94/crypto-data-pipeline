@@ -30,7 +30,10 @@ def message_handler(_, message):
     data = json.loads(message)
 
     key = data.get('s')
-
+    print("--- MENSAGEM RECEBIDA DO WEBSOCKET ---")
+    print(message)
+    print("key = ", key)
+    
     if key:
         print(f"Trade recebido para {key}: {message}")
 
@@ -54,6 +57,7 @@ def main():
         # A thread do WebSocket está rodando em segundo plano.
         # O loop principal pode apenas esperar.
         time.sleep(1)
+        print("estou no Loop!")
 
 
 
