@@ -24,7 +24,6 @@ services:
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
 
-    
   producer:
     depends_on: 
       - kafka
@@ -33,3 +32,24 @@ services:
     volumes:
       - ./src/producer/app:/src/app
     restart: unless-stopped
+
+  spark-master:
+    depends_on:
+      - kafka
+    ports:
+      - 8088:8080
+      - 7077:7077
+    build:
+      context: src/spark-processor/
+    volumes:
+      - ./src/spark-processor/app:/src/app
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+  
+  spark-worker1:
+    depends_on:
+      - spark-master
+    build:
+      context: src/spark-processor/
+    volumes:
+      - ./src/spark-processor/app:/src/app
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
