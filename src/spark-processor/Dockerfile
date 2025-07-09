@@ -1,5 +1,7 @@
 FROM apache/spark-py:v3.4.0
 
+USER root
+
 # Criamos um grupo 'spark' e um usuário 'spark' com um diretório home
 RUN groupadd -r spark && useradd --no-log-init -r -g spark spark
 
