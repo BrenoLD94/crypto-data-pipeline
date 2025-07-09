@@ -1,5 +1,8 @@
 FROM apache/spark-py:v3.4.0
 
+# Criamos um grupo 'spark' e um usuário 'spark' com um diretório home
+RUN groupadd -r spark && useradd --no-log-init -r -g spark spark
+
 # Cria o diretório de trabalho para o processo do Spark
 RUN mkdir -p /opt/spark/work-dir
 
