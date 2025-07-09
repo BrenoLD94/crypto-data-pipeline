@@ -2,24 +2,19 @@ FROM apache/spark-py:v3.4.0
 
 USER root
 
-# Criamos um grupo 'spark' e um usuário 'spark' com um diretório home
 RUN groupadd -r spark && useradd --no-log-init -r -g spark spark
+RUN mkdir -p /opt/spark/work-dir && chown -R spark:spark /opt/spark/work-dir
+RUN mkdir /src/app && chown -R spark:spark /src/app
 
-# Cria o diretório de trabalho para o processo do Spark
-RUN mkdir -p /opt/spark/work-dir
+COPY --chown=spark:spark requirements.txt /src/app
+COPY --chown=spark:spark app/ /src/app
 
-# Dá a posse desse diretório ao usuário 'spark'
-RUN chown -R spark:spark /opt/spark/work-dir
-
-# Define o diretório de trabalho para a NOSSA aplicação
 WORKDIR /src/app
-
-COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ .
+WORKDIR /opt/spark/work-dir
 
 USER spark
 
-CMD ["spark-submit", "--conf", "spark.user=spark", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "processor.py"]
+CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/src/app/processor.py"]
