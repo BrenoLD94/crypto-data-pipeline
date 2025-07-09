@@ -1,7 +1,7 @@
 FROM apache/spark-py:v3.4.0
 
 # Cria o diretório de trabalho para o processo do Spark
-RUN mkdir /opt/spark/work-dir
+RUN mkdir -p /opt/spark/work-dir
 
 # Dá a posse desse diretório ao usuário 'spark'
 RUN chown -R spark:spark /opt/spark/work-dir
