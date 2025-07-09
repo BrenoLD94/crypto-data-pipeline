@@ -52,4 +52,6 @@ services:
       context: src/spark-processor/
     volumes:
       - ./src/spark-processor/app:/src/app
+    environment:
+      SPARK_WORKER_DIR: "/opt/spark/work-dir"
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
