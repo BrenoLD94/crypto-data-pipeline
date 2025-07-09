@@ -4,7 +4,7 @@ USER root
 
 RUN groupadd -r spark && useradd --no-log-init -r -g spark spark
 RUN mkdir -p /opt/spark/work-dir && chown -R spark:spark /opt/spark/work-dir
-RUN mkdir /src/app && chown -R spark:spark /src/app
+RUN mkdir -p /src/app && chown -R spark:spark /src/app
 
 COPY --chown=spark:spark requirements.txt /src/app
 COPY --chown=spark:spark app/ /src/app
