@@ -2,7 +2,7 @@ FROM apache/spark-py:v3.4.0
 
 USER root
 
-RUN groupadd -r spark && useradd --no-log-init -r -g spark spark
+RUN groupadd -r spark && useradd --no-log-init -m -r -g spark spark
 
 RUN chown -R spark:spark /home/spark
 RUN mkdir -p /opt/spark/work-dir && chown -R spark:spark /opt/spark/work-dir
