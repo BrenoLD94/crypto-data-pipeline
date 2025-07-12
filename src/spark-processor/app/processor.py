@@ -53,12 +53,8 @@ binance_df_raw = spark \
                 .option("subscribe", KAFKA_TOPIC) \
                 .load()
 
-binance_df_raw.printSchema()
-
 # 1. Cast para String
 df_string = binance_df_raw.selectExpr("CAST(value as STRING) AS value")
-
-df_string.printSchema()
 
 # 2. Extrai o JSON de dentro do campo 'data'
 df_data_str = df_string.select(sf.get_json_object(sf.col("value"), "$.data").alias("data_str"))
