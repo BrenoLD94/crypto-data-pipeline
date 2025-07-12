@@ -30,7 +30,7 @@ spark = SparkSession \
         .builder \
         .appName("cryptoDataPipelineStreaming") \
         .master("spark://spark-master:7077") \
-        .getorcreate()
+        .getOrCreate()
 
 user_schema = StructType([ \
     StructField("e", StringType(), True), \
