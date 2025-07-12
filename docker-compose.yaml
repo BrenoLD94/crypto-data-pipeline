@@ -55,3 +55,12 @@ services:
     environment:
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+  spark-processor:
+    build:
+      context: src/spark-processor/
+    depends_on:
+      - spark-master
+    volumes:
+      - ./src/spark-processor/app:/app
+    command: ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]

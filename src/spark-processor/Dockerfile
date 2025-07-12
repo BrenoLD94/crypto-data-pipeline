@@ -16,5 +16,3 @@ RUN pip install --no-cache-dir -r requirements.txt
 WORKDIR /opt/spark/work-dir
 
 USER spark
-
-CMD ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/src/app/processor.py"]
