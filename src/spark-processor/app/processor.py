@@ -57,7 +57,7 @@ binance_df_raw = spark \
 df_string = binance_df_raw.selectExpr("CAST(value as STRING) AS value")
 
 # 2. Extrai o JSON de dentro do campo 'data'
-df_data_str = df_string.select(sf.from_json(sf.get_json_object(sf.col("value"), "$.data"))).alias("data_str")
+df_data_str = df_string.select(sf.get_json_object(sf.col("value"), "$.data")).alias("data_str")
 
 # 3. Aplica o schema na nova coluna e expande para colunas finais
 df_final_cols = df_data_str.select(sf.from_json(sf.col("data_str"), user_schema).alias("data_struct")) \
