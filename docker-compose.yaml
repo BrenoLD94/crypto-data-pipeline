@@ -63,4 +63,4 @@ services:
       - spark-master
     volumes:
       - ./src/spark-processor/app:/app
-    command: ["spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
+    command: ["/opt/spark/bin/spark-submit", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
