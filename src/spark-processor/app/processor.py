@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType,StructField, StringType, IntegerType, BooleanType, FloatType
+from pyspark.sql.types import StructType,StructField, StringType, IntegerType, BooleanType, FloatType, LongType
 import pyspark.sql.functions as sf
 
 #  https://spark.apache.org/docs/latest/streaming/getting-started.html#programming-model -> leia isso
@@ -34,14 +34,14 @@ spark = SparkSession \
 
 user_schema = StructType([ \
     StructField("e", StringType(), True), \
-    StructField("E", IntegerType(), True), \
+    StructField("E", LongType(), True), \
     StructField("s", StringType(), True), \
-    StructField("a", IntegerType(), True), \
-    StructField("p", FloatType(), True), \
-    StructField("q", IntegerType(), True), \
-    StructField("f", IntegerType(), True), \
-    StructField("l", IntegerType(), True), \
-    StructField("T", IntegerType(), True), \
+    StructField("a", LongType(), True), \
+    StructField("p", StringType(), True), \
+    StructField("q", StringType(), True), \
+    StructField("f", LongType(), True), \
+    StructField("l", LongType(), True), \
+    StructField("T", LongType(), True), \
     StructField("m", BooleanType(), True)
   ])
 
