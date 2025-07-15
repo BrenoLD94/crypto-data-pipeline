@@ -30,6 +30,7 @@ spark = SparkSession \
         .builder \
         .appName("cryptoDataPipelineStreaming") \
         .master("spark://spark-master:7077") \
+        .config("spark.sql.caseSensitive", "true") \
         .getOrCreate()
 
 user_schema = StructType([ \
