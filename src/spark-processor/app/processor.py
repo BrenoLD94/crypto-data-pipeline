@@ -63,6 +63,8 @@ df_data_str = df_string.select(sf.get_json_object(sf.col("value"), "$.data").ali
 df_final_cols = df_data_str.select(sf.from_json(sf.col("data_str"), user_schema).alias("data_struct")) \
                            .select("data_struct.*")
 
+df_final_cols.printSchema()
+
 # 4. Renomeia as colunas
 df_renamed = df_final_cols.withColumnRenamed("e", "event_type") \
                         .withColumnRenamed("E", "event_time") \
@@ -74,6 +76,8 @@ df_renamed = df_final_cols.withColumnRenamed("e", "event_type") \
                         .withColumnRenamed("l", "last_trade_id") \
                         .withColumnRenamed("T", "trade_time") \
                         .withColumnRenamed("m", "is_buyer_market")
+
+df_renamed.printSchema()
 
 # 5. Estruturando coluna de event time
 df_with_timestamp = df_renamed.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("timestamp") )
