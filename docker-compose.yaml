@@ -43,6 +43,8 @@ services:
       context: src/spark-processor/
     volumes:
       - ./src/spark-processor/app:/src/app
+    environment:
+      SPARK_PUBLIC_DNS: "192.168.0.15"
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
   
   spark-worker1:
@@ -56,6 +58,7 @@ services:
       - ./src/spark-processor/app:/src/app
     environment:
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
+      SPARK_PUBLIC_DNS: "192.168.0.15"
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
 
   spark-processor:
@@ -67,4 +70,6 @@ services:
       - 4040:4040
     volumes:
       - ./src/spark-processor/app:/app
+    environment:
+      SPARK_PUBLIC_DNS: "192.168.0.15"
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]

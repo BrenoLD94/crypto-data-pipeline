@@ -68,20 +68,31 @@ df_renamed = df_final_cols.withColumnRenamed("e", "event_type") \
                         .withColumnRenamed("E", "event_time") \
                         .withColumnRenamed("s", "symbol") \
                         .withColumnRenamed("a", "agg_trade_id") \
-                        .withColumnRenamed("p" , "Price") \
+                        .withColumnRenamed("p" , "price") \
                         .withColumnRenamed("q", "quantity") \
                         .withColumnRenamed("f", "first_trade_id") \
                         .withColumnRenamed("l", "last_trade_id") \
                         .withColumnRenamed("T", "trade_time") \
                         .withColumnRenamed("m", "is_buyer_market")
 
+# 5. Estruturando coluna de event time
+df_with_timestamp = df_renamed.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("timestamp") )
 
-# 5. Inicia o sink (saída) para o console
-query = df_renamed.writeStream \
+# 6. Aplicando window function e agregações
+df_windowed = df_with_timestamp.withWatermark("event_timestamp", "15 seconds").groupBy(
+    sf.col("symbol"),
+    sf.window(sf.col("event_timestamp"), "10 seconds")
+).agg(
+    sf.sum("quantity").alias("total_quantity"), 
+    sf.avg("price").alias("average_price")
+)
+
+# 7. Inicia o sink (saída) para o console
+query = df_windowed.writeStream \
     .outputMode("append") \
     .format("console") \
     .option("truncate", "false") \
     .start()
 
-# 6. Mantém a aplicação viva, esperando o stream terminar
+# 8. Mantém a aplicação viva, esperando o stream terminar
 query.awaitTermination()
