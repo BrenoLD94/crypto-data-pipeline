@@ -36,6 +36,7 @@ services:
   spark-master:
     depends_on:
       - kafka
+      - influxdb
     ports:
       - 8088:8080
       - 7077:7077
@@ -73,3 +74,17 @@ services:
     environment:
       SPARK_PUBLIC_DNS: "192.168.0.15"
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
+
+  influxdb:
+    image: influxdb:2.7
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: "setup"
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+    ports:
+      - 8086:8086
+    volumes:
+      - ./data/influxdb/data:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
