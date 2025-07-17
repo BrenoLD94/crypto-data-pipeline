@@ -89,3 +89,13 @@ services:
     volumes:
       - ./data/influxdb/data:/var/lib/influxdb2
       - ./data/influxdb/config:/etc/influxdb2
+
+  grafana:
+    image: grafana/grafana:11.6
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - ./data/grafana:/var/lib/grafana
