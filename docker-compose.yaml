@@ -92,6 +92,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.6.3
+    user: root
     depends_on:
       - influxdb
     restart: unless-stopped
@@ -99,3 +100,5 @@ services:
       - 3000:3000
     volumes:
       - ./data/grafana:/var/lib/grafana
+    command: >
+      sh -c "chown -R 472:472 /var/lib/grafana && /run.sh"
