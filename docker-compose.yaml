@@ -73,6 +73,7 @@ services:
       - ./src/spark-processor/app:/app
     environment:
       SPARK_PUBLIC_DNS: "192.168.0.15"
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
 
   influxdb:

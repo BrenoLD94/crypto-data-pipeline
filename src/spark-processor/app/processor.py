@@ -2,6 +2,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType,StructField, StringType, IntegerType, BooleanType, FloatType, LongType
 import pyspark.sql.functions as sf
 
+import influxdb_client
+from influxdb_client.client.write_api import SYNCHRONOUS
+
+import os
+
 #  https://spark.apache.org/docs/latest/streaming/getting-started.html#programming-model -> leia isso
 #  https://spark.apache.org/docs/latest/streaming/apis-on-dataframes-and-datasets.html#window-operations-on-event-time 
 
@@ -31,6 +36,7 @@ spark = SparkSession \
         .appName("cryptoDataPipelineStreaming") \
         .master("spark://spark-master:7077") \
         .config("spark.sql.caseSensitive", "true") \
+        .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
         .getOrCreate()
 
 user_schema = StructType([ \
@@ -64,8 +70,6 @@ df_data_str = df_string.select(sf.get_json_object(sf.col("value"), "$.data").ali
 df_final_cols = df_data_str.select(sf.from_json(sf.col("data_str"), user_schema).alias("data_struct")) \
                            .select("data_struct.*")
 
-df_final_cols.printSchema()
-
 # 4. Renomeia as colunas
 df_renamed = df_final_cols.withColumnRenamed("e", "event_type") \
                         .withColumnRenamed("E", "event_time") \
@@ -78,10 +82,12 @@ df_renamed = df_final_cols.withColumnRenamed("e", "event_type") \
                         .withColumnRenamed("T", "trade_time") \
                         .withColumnRenamed("m", "is_buyer_market")
 
-df_renamed.printSchema()
+
+df_casted = df_renamed.withColumn("quantity", sf.col("quantity").cast("double")) \
+                    .withColumn("price", sf.col("price").cast("double"))
 
 # 5. Estruturando coluna de event time
-df_with_timestamp = df_renamed.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("timestamp") )
+df_with_timestamp = df_casted.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("timestamp") )
 
 # 6. Aplicando window function e agregações
 df_windowed = df_with_timestamp.withWatermark("event_timestamp", "15 seconds").groupBy(
@@ -92,11 +98,47 @@ df_windowed = df_with_timestamp.withWatermark("event_timestamp", "15 seconds").g
     sf.avg("price").alias("average_price")
 )
 
+df_windowed.printSchema()
+
+INFLUXDB_BUCKET = "trades_raw"
+INFLUXDB_ORG = "crypto_pipeline_org"
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
+INFLUXDB_URL="http://influxdb:8086"
+
+def write_influxdb(batch_df, batch_id):
+    print(f"--- Processando Lote ID: {batch_id} ---")
+    
+    client = influxdb_client.InfluxDBClient(
+        url=INFLUXDB_URL,
+        token=INFLUXDB_TOKEN,
+        org=INFLUXDB_ORG
+    )
+
+    write_api = client.write_api(write_options=SYNCHRONOUS)
+
+    df = batch_df.toPandas()
+
+    points = []
+    for index, row in df.iterrows():
+        p = influxdb_client.Point("trades_summary") \
+            .tag("symbol", row['symbol']) \
+            .field("total_quantity", row['total_quantity']) \
+            .field("average_price", row['average_price']) \
+            .time(row.window['start'])
+        
+        points.append(p)
+    
+    write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=points)
+    
+    print(f"Lote {batch_id} com {len(df)} linhas escrito no InfluxDB.")
+    
+    client.close()
+
 # 7. Inicia o sink (saída) para o console
 query = df_windowed.writeStream \
-    .outputMode("append") \
-    .format("console") \
-    .option("truncate", "false") \
+    .foreachBatch(write_influxdb) \
+    .option("checkpointLocation", "/tmp/spark_checkpoints/influxdb_sink") \
+    .trigger(processingTime='15 seconds') \
     .start()
 
 # 8. Mantém a aplicação viva, esperando o stream terminar
