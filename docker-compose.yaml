@@ -1,0 +1,104 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+  
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka:29092,EXTERNAL://localhost:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092'
+      KAFKA_BROKER_ID: 1
+
+    volumes:
+      - ./infra/kafka/config.txt:/tmp/config.txt
+
+  producer:
+    depends_on: 
+      - kafka
+    build:
+      context: src/producer/
+    volumes:
+      - ./src/producer/app:/src/app
+    restart: unless-stopped
+
+  spark-master:
+    depends_on:
+      - kafka
+      - influxdb
+    ports:
+      - 8088:8080
+      - 7077:7077
+    build:
+      context: src/spark-processor/
+    volumes:
+      - ./src/spark-processor/app:/src/app
+    environment:
+      SPARK_PUBLIC_DNS: "192.168.0.15"
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+  
+  spark-worker1:
+    depends_on:
+      - spark-master
+    ports:
+      - 8089:8081
+    build:
+      context: src/spark-processor/
+    volumes:
+      - ./src/spark-processor/app:/src/app
+    environment:
+      SPARK_WORKER_DIR: "/opt/spark/work-dir"
+      SPARK_PUBLIC_DNS: "192.168.0.15"
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+  spark-processor:
+    build:
+      context: src/spark-processor/
+    depends_on:
+      - spark-master
+    ports:
+      - 4040:4040
+    volumes:
+      - ./src/spark-processor/app:/app
+    environment:
+      SPARK_PUBLIC_DNS: "192.168.0.15"
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
+
+  influxdb:
+    image: influxdb:2.7
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: "setup"
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+    ports:
+      - 8086:8086
+    volumes:
+      - ./data/influxdb/data:/var/lib/influxdb2
+      - ./data/influxdb/config:/etc/influxdb2
+
+  grafana:
+    image: grafana/grafana:11.6.3
+    user: root
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    command: >
+      sh -c "chown -R 472:472 /var/lib/grafana && /run.sh"

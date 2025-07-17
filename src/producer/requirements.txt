@@ -1,0 +1,2 @@
+confluent-kafka
+binance-futures-connector
