@@ -91,7 +91,7 @@ services:
       - ./data/influxdb/config:/etc/influxdb2
 
   grafana:
-    image: grafana/grafana:11.6
+    image: grafana/grafana:11.6.3
     depends_on:
       - influxdb
     restart: unless-stopped
