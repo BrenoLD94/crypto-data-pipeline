@@ -113,5 +113,27 @@ services:
       - ./data/minio/data:/data
     environment:
       MINIO_ROOT_USER: ${MINIO_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_PASS}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
     command: ["server", "/data", "--console-address", ":9001"]
+  
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    # --- A SEÇÃO DE RECURSOS PARA DOCKER COMPOSE ---
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'  # Limita a 50% de um núcleo de CPU
+          memory: 1g   # Limita a 1 Gigabyte de RAM
+        reservations:
+          cpus: '0.25'  # Garante pelo menos 25% de um núcleo
+          memory: 512m # Garante pelo menos 512 Megabytes de RAM
