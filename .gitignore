@@ -13,3 +13,5 @@ venv/
 # Arquivos de segredos
 secrets.env
 *.local
+
+link_uteis.txt
