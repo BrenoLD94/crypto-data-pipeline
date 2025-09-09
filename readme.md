@@ -1,9 +1,64 @@
 ````markdown
-# Crypto Data Pipeline em Tempo Real
+# Crypto Data Pipeline em Tempo Real com Arquitetura Híbrida
 
-Este projeto implementa um pipeline de dados completo para capturar, processar, armazenar e visualizar dados de trades de criptomoedas (BTC/USDT) em tempo real, utilizando um ecossistema de ferramentas de Big Data orquestrado com Docker Compose.
+Este projeto implementa um pipeline de dados completo e robusto para capturar, processar, armazenar e visualizar dados de trades de criptomoedas (BTC/USDT) em tempo real. A infraestrutura é totalmente orquestrada com **Docker Compose**, criando um ambiente de desenvolvimento e análise completo e facilmente replicável.
 
-## Visão Geral da Arquitetura
+![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
+![Spark](https://img.shields.io/badge/Apache%20Spark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)
+![InfluxDB](https://img.shields.io/badge/InfluxDB-22ADF6?style=for-the-badge&logo=influxdb&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![MinIO](https://img.shields.io/badge/MinIO-C92622?style=for-the-badge&logo=minio&logoColor=white)
+![Iceberg](https://img.shields.io/badge/Apache%20Iceberg-1D91F2?style=for-the-badge&logo=apacheiceberg&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Trino](https://img.shields.io/badge/Trino-000000?style=for-the-badge&logo=trino&logoColor=59B7E5)
+![Apache Superset](https://img.shields.io/badge/Apache%20Superset-00A59B?style=for-the-badge&logo=apachesuperset&logoColor=white)
+
+
+## 🏛️ Arquitetura Híbrida (Hot & Cold Path)
+
+O projeto utiliza uma arquitetura Lambda simplificada, com um caminho "quente" para análise de baixa latência e um caminho "frio" para armazenamento de longo prazo e análises complexas.
+
+```mermaid
+graph TD
+    subgraph "Fonte de Dados"
+        A[Binance WebSocket API]
+    end
+
+    subgraph "Camada de Ingestão"
+        B(Python Producer) --> C{Apache Kafka};
+    end
+
+    subgraph "Camada de Processamento"
+        C --> S[Apache Spark];
+    end
+
+    subgraph "Hot Path (Análise de Baixa Latência)"
+        S -- Agregação em Janela --> I[InfluxDB];
+        I --> G[Grafana Dashboard];
+    end
+
+    subgraph "Cold Path (Data Lakehouse)"
+        S -- Escrita em Formato de Tabela --> TBL[Tabelas Apache Iceberg];
+        TBL -- Armazena Dados em Parquet --> MIO[MinIO S3 Storage];
+        TBL -- Gerencia Metadados via --> PG[PostgreSQL];
+    end
+
+    subgraph "BI no Lakehouse (Cold Path)"
+        TR[Trino Query Engine] -- Lê Tabelas Iceberg via --> PG;
+        SS[Apache Superset] -- Queries SQL --> TR;
+    end
+
+    A --> B;
+```
+
+* **Fluxo Comum:** Um **Producer** em Python captura dados da Binance e os publica no **Kafka**. O **Spark** consome esses dados em tempo real.
+* **Hot Path:** Uma query de streaming no Spark realiza agregações em janela e salva os resultados no **InfluxDB**, que são exibidos em um dashboard no **Grafana** para monitoramento instantâneo.
+* **Cold Path:** Outra query de streaming no Spark pega os dados, os estrutura e os salva em tabelas no formato **Apache Iceberg**, com os arquivos físicos (Parquet) armazenados no **MinIO**. O catálogo de metadados do Iceberg é gerenciado pelo **PostgreSQL**. Ferramentas de BI como o **Superset** podem então usar o **Trino** para fazer consultas SQL de alta performance diretamente no Lakehouse.
+
+
+## Visão Geral da Arquitetura (Atualizar daqui para baixo)
 
 O fluxo de dados segue as seguintes etapas:
 
