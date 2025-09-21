@@ -32,12 +32,13 @@ INFLUXDB_ORG = "crypto_pipeline_org"
 INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_URL="http://influxdb:8086"
 
-def get_spark_session(catalog_name="cripto-data", 
+def get_spark_session(catalog_name="cripto_data", 
                       postgres_user="breno", 
                       postgres_password="admin2025", 
                       postgres_db="criptoDB", 
                       minio_user="breno", 
-                      minio_password="admin2025"):
+                      minio_password="admin2025",
+                      minio_bucket_name = "cripto-data"):
 
     spark = SparkSession \
             .builder \
@@ -49,7 +50,7 @@ def get_spark_session(catalog_name="cripto-data",
             .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
             .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
             .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
-            .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{catalog_name}/") \
+            .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
             .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
