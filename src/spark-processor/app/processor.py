@@ -50,7 +50,7 @@ def get_spark_session(catalog_name="cripto-data",
             .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
             .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
             .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{catalog_name}/") \
-            .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db.replace("-", "_")}") \
+            .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
