@@ -101,11 +101,19 @@ def write_raw_to_iceberg(batch_df, batch_id):
     try:
         print(f"--- Escrevendo lote {batch_id} no Iceberg (Cold Path) ---")
         
-        batch_df.withColumn("trade_date", sf.to_date(sf.col("event_timestamp")))
+        batch_df = batch_df.withColumn("trade_date", sf.to_date(sf.col("event_timestamp")))
 
-        batch_df.writeTo("cripto-data.bronze.trades_agg") \
-        .partitionedBy("trade_date") \
-        .append()
+        table_name = "cripto_data.bronze.trades_agg"
+
+        if batch_df.sparkSession.catalog.tableExists(table_name):
+            batch_df.writeTo(table_name) \
+            .partitionedBy("trade_date") \
+            .append()
+        else:
+            batch_df.writeTo(table_name) \
+            .partitionedBy("days(trade_date)") \
+            .create()
+        
         
         print(f"--- Lote {batch_id} escrito no Iceberg com sucesso. ---")
     
