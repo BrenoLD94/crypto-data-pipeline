@@ -58,6 +58,7 @@ def get_spark_session(catalog_name="cripto_data",
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
             .config("spark.hadoop.fs.s3a.access.key", minio_user) \
             .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
+            .config("spark.hadoop.fs.s3a.region", "us-east-1") \
             .config("spark.hadoop.fs.s3a.path.style.access", "True") \
             .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
