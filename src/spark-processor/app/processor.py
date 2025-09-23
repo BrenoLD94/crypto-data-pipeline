@@ -61,6 +61,7 @@ def get_spark_session(catalog_name="cripto_data",
             .config("spark.hadoop.fs.s3a.path.style.access", "True") \
             .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
             .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+            .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider") \
             .getOrCreate()
     
     return spark
@@ -111,7 +112,7 @@ def write_raw_to_iceberg(batch_df, batch_id):
             .append()
         else:
             batch_df.writeTo(table_name) \
-            .partitionedBy("days(trade_date)") \
+            .partitionedBy("trade_date") \
             .create()
         
         
