@@ -45,7 +45,6 @@ def get_spark_session(catalog_name="cripto_data",
             .appName("cryptoDataPipelineStreaming") \
             .master("spark://spark-master:7077") \
             .config("spark.sql.caseSensitive", "true") \
-            .config("spark.sql.execution.arrow.pyspark.enabled", "true") \
             .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
             .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
             .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
