@@ -46,6 +46,8 @@ services:
       - ./src/spark-processor/app:/src/app
     environment:
       SPARK_PUBLIC_DNS: "192.168.0.15"
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
   
   spark-worker1:
@@ -60,6 +62,9 @@ services:
     environment:
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
       SPARK_PUBLIC_DNS: "192.168.0.15"
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${MINIO_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
 
   spark-processor:
@@ -74,6 +79,7 @@ services:
     environment:
       SPARK_PUBLIC_DNS: "192.168.0.15"
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+      AWS_REGION: ${AWS_REGION}
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
 
   influxdb:
