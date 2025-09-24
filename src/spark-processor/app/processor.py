@@ -50,18 +50,17 @@ def get_spark_session(catalog_name="cripto_data",
             .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
             .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
             .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
+            .config(f"spark.sql.catalog.{catalog_name}.catalog-impl", "org.apache.iceberg.jdbc.JdbcCatalog") \
             .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
             .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
             .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
+            .config(f"spark.sql.catalog.{catalog_name}.s3a.endpoint", "http://minio:9000") \
             .config("spark.hadoop.fs.s3a.access.key", minio_user) \
             .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
             .config("spark.hadoop.fs.s3a.path.style.access", "True") \
-            .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
-            .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-            .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider") \
             .getOrCreate()
     
     return spark
