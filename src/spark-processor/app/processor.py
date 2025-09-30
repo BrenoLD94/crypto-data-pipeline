@@ -66,6 +66,7 @@ def get_spark_session(catalog_name="cripto_data",
         .builder \
         .appName("cryptoDataPipelineStreaming") \
         .master("spark://spark-master:7077") \
+        .config("spark.sql.caseSensitive", "true") \
         .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
         .config("spark.hadoop.fs.s3a.access.key", minio_user) \
         .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
@@ -151,7 +152,7 @@ def write_raw_to_minio(batch_df, batch_id,
         df_for_writing.write \
             .mode("append") \
             .partitionBy("trade_date") \
-            .parquet(output_path)
+            .create(output_path)
         
         print(f"--- Lote BRUTO {batch_id} escrito com sucesso em '{output_path}' ---")
     
@@ -210,7 +211,7 @@ def main():
                         .withColumn("price", sf.col("price").cast("double"))
 
     # 5. Estruturando coluna de event time
-    df_with_timestamp = df_casted.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("timestamp") )
+    df_with_timestamp = df_casted.withColumn("event_timestamp", (sf.col("event_time") / 1000).cast("double").cast("timestamp") )
 
     # SINK - COLD PATH
     query_raw = df_with_timestamp.writeStream \
