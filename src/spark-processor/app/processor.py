@@ -40,27 +40,38 @@ def get_spark_session(catalog_name="cripto_data",
                       minio_password="admin2025",
                       minio_bucket_name = "cripto-data"):
 
+    #spark = SparkSession \
+    #        .builder \
+    #        .appName("cryptoDataPipelineStreaming") \
+    #        .master("spark://spark-master:7077") \
+    #        .config("spark.sql.caseSensitive", "true") \
+    #        .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+    #        .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.catalog-impl", "org.apache.iceberg.jdbc.JdbcCatalog") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
+    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
+    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
+    #        .config(f"spark.sql.catalog.{catalog_name}.s3a.endpoint", "http://minio:9000") \
+    #        .config("spark.hadoop.fs.s3a.access.key", minio_user) \
+    #        .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
+    #        .config("spark.hadoop.fs.s3a.path.style.access", "True") \
+    #        .getOrCreate()
+
     spark = SparkSession \
-            .builder \
-            .appName("cryptoDataPipelineStreaming") \
-            .master("spark://spark-master:7077") \
-            .config("spark.sql.caseSensitive", "true") \
-            .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
-            .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
-            .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
-            .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
-            .config(f"spark.sql.catalog.{catalog_name}.catalog-impl", "org.apache.iceberg.jdbc.JdbcCatalog") \
-            .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
-            .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
-            .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
-            .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
-            .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
-            .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
-            .config(f"spark.sql.catalog.{catalog_name}.s3a.endpoint", "http://minio:9000") \
-            .config("spark.hadoop.fs.s3a.access.key", minio_user) \
-            .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
-            .config("spark.hadoop.fs.s3a.path.style.access", "True") \
-            .getOrCreate()
+        .builder \
+        .appName("cryptoDataPipelineStreaming") \
+        .master("spark://spark-master:7077") \
+        .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
+        .config("spark.hadoop.fs.s3a.access.key", minio_user) \
+        .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
+        .config("spark.hadoop.fs.s3a.path.style.access", "true") \
+        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
+        .getOrCreate()
     
     return spark
 
@@ -95,6 +106,7 @@ def write_influxdb(batch_df, batch_id):
     
     client.close()
 
+# Só salve no minio, sem usar iceberg, por enquanto. Voltar um passo para andar 2
 def write_raw_to_iceberg(batch_df, batch_id):
       # =============== COLD PATH =====================
     try:
@@ -121,7 +133,30 @@ def write_raw_to_iceberg(batch_df, batch_id):
 
     # Libera o DataFrame da memória
     batch_df.unpersist()
+
+def write_raw_to_minio(batch_df, batch_id,
+                      minio_bucket_name = "cripto-data"):
+    """
+    Salva um micro-lote de dados brutos como arquivos Parquet no MinIO.
+    """
+    print(f"--- Escrevendo lote BRUTO {batch_id} como Parquet no MinIO ---")
+    try:
+        # Adiciona a coluna de data para particionar as pastas
+        df_for_writing = batch_df.withColumn("trade_date", sf.to_date(sf.col("event_timestamp")))
+        
+        # Define o caminho de destino no MinIO
+        output_path = f"s3a://{minio_bucket_name}/bronze/trades_raw/"
+
+        # Escreve o DataFrame no formato Parquet
+        df_for_writing.write \
+            .mode("append") \
+            .partitionBy("trade_date") \
+            .parquet(output_path)
+        
+        print(f"--- Lote BRUTO {batch_id} escrito com sucesso em '{output_path}' ---")
     
+    except Exception as e:
+        print(f"!!! Erro ao escrever no MinIO: {e}")
 
 def main():
 
@@ -180,7 +215,7 @@ def main():
     # SINK - COLD PATH
     query_raw = df_with_timestamp.writeStream \
         .outputMode("append") \
-        .foreachBatch(write_raw_to_iceberg) \
+        .foreachBatch(write_raw_to_minio) \
         .option("checkpointLocation", "/tmp/spark_checkpoints/cold_path_sink") \
         .trigger(processingTime='15 seconds') \
         .start()
