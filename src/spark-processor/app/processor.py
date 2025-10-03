@@ -152,7 +152,7 @@ def write_raw_to_minio(batch_df, batch_id,
         df_for_writing.write \
             .mode("append") \
             .partitionBy("trade_date") \
-            .create(output_path)
+            .parquet(output_path)
         
         print(f"--- Lote BRUTO {batch_id} escrito com sucesso em '{output_path}' ---")
     
