@@ -11,7 +11,7 @@ RUN mkdir -p /src/app && chown -R spark:spark /src/app
 # COPY --chown=spark:spark ./jars/* /opt/spark/jars/
 
 RUN apt-get update && apt-get install -y --no-install-recommends wget \
-    && wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/software/amazon/awssdk/bundle/2.23.19/bundle-2.23.19.jar\
+    && wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar\
     && wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.4.0/hadoop-aws-3.4.0.jar \
     && wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-3.4_2.12/1.9.2/iceberg-spark-runtime-3.4_2.12-1.9.2.jar \
     && wget -P /opt/spark/jars/ https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-client/3.4.0/hadoop-client-3.4.0.jar \
