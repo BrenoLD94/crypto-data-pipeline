@@ -74,15 +74,15 @@ services:
       - spark-master
     ports:
       - 4040:4040
-    volumes:
-      - ./src/spark-processor/app:/app
     environment:
       SPARK_PUBLIC_DNS: "192.168.0.15"
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       AWS_REGION: ${AWS_REGION}
       AWS_ACCESS_KEY_ID: ${MINIO_USER}
       AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
-    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262", "/app/processor.py"]
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262", "s3a://cripto-data/spark-scripts/processor.py"]
 
   influxdb:
     image: influxdb:2.7

@@ -29,16 +29,21 @@ KAFKA_TOPIC = "binance-trades-raw"
 KAFKA_BOOSTSTRAP_SERVERS = "kafka:29092"
 INFLUXDB_BUCKET = "trades_raw"
 INFLUXDB_ORG = "crypto_pipeline_org"
-INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
 INFLUXDB_URL="http://influxdb:8086"
 
-def get_spark_session(catalog_name="cripto_data", 
-                      postgres_user="breno", 
-                      postgres_password="admin2025", 
+INFLUXDB_TOKEN = os.getenv("INFLUXDB_TOKEN")
+MINIO_USER = os.getenv("AWS_ACCESS_KEY_ID")
+MINIO_PASSWORD = os.getenv("AWS_SECRET_ACCESS_KEY")
+POSTGRES_USER= os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+
+def get_spark_session(postgres_user, 
+                      postgres_password,
+                      minio_user, 
+                      minio_password,
+                      catalog_name="cripto_data", 
                       postgres_db="criptoDB", 
-                      minio_user="breno", 
-                      minio_password="admin2025",
-                      minio_bucket_name = "cripto-data"):
+                      minio_bucket_name="cripto-data"):
 
     #spark = SparkSession \
     #        .builder \
@@ -76,7 +81,7 @@ def get_spark_session(catalog_name="cripto_data",
     
     return spark
 
-def write_influxdb(batch_df, batch_id):
+def write_influxdb_not_optimizer(batch_df, batch_id):
 
     # =============== HOT PATH =====================
     print(f"--- Processando Lote ID: {batch_id} ---")
@@ -107,7 +112,29 @@ def write_influxdb(batch_df, batch_id):
     
     client.close()
 
-# Só salve no minio, sem usar iceberg, por enquanto. Voltar um passo para andar 2
+def write_influxdb(iterator_of_rows):
+    client = influxdb_client.InfluxDBClient(
+        url=INFLUXDB_URL,
+        token=INFLUXDB_TOKEN,
+        org=INFLUXDB_ORG
+    )
+
+    write_api = client.write_api(write_options=SYNCHRONOUS)
+
+    points = []
+    for row in iterator_of_rows:
+        p = influxdb_client.Point("trades_summary") \
+            .tag("symbol", row['symbol']) \
+            .field("total_quantity", row['total_quantity']) \
+            .field("average_price", row['average_price']) \
+            .time(row.window['start'])
+        
+        points.append(p)
+    
+    write_api.write(bucket=INFLUXDB_BUCKET, org=INFLUXDB_ORG, record=points)
+
+    client.close()
+    
 def write_raw_to_iceberg(batch_df, batch_id):
       # =============== COLD PATH =====================
     try:
@@ -146,7 +173,7 @@ def write_raw_to_minio(batch_df, batch_id,
         df_for_writing = batch_df.withColumn("trade_date", sf.to_date(sf.col("event_timestamp")))
         
         # Define o caminho de destino no MinIO
-        output_path = f"s3a://{minio_bucket_name}/bronze/trades_raw/"
+        output_path = f"s3a://{minio_bucket_name}/streaming/btc/"
 
         # Escreve o DataFrame no formato Parquet
         df_for_writing.write \
@@ -160,8 +187,18 @@ def write_raw_to_minio(batch_df, batch_id,
         print(f"!!! Erro ao escrever no MinIO: {e}")
 
 def main():
+    catalog_name="cripto_data"
+    postgres_db="criptoDB"
+    minio_bucket_name = "cripto-data"
 
-    spark = get_spark_session()
+
+    spark = get_spark_session(postgres_user = POSTGRES_USER,
+                            postgres_password = POSTGRES_PASSWORD,
+                            minio_user=MINIO_USER,
+                            minio_password=MINIO_PASSWORD,
+                            catalog_name=catalog_name, 
+                            postgres_db=postgres_db,
+                            minio_bucket_name = minio_bucket_name)
 
     user_schema = StructType([ \
         StructField("e", StringType(), True), \
@@ -217,7 +254,7 @@ def main():
     query_raw = df_with_timestamp.writeStream \
         .outputMode("append") \
         .foreachBatch(write_raw_to_minio) \
-        .option("checkpointLocation", "/tmp/spark_checkpoints/cold_path_sink") \
+        .option("checkpointLocation", f"s3a://{minio_bucket_name}/spark_checkpoints/cold_path_sink") \
         .trigger(processingTime='15 seconds') \
         .start()
 
@@ -234,8 +271,8 @@ def main():
     # SINK - HOT PATH
     query_aggregated = df_windowed.writeStream \
         .outputMode("update") \
-        .foreachBatch(write_influxdb) \
-        .option("checkpointLocation", "/tmp/spark_checkpoints/influxdb_sink") \
+        .foreachBatch(lambda batch_df, batch_id: batch_df.foreachPartition(write_influxdb)) \
+        .option("checkpointLocation", f"s3a://{minio_bucket_name}/spark_checkpoints/influxdb_sink") \
         .trigger(processingTime='15 seconds') \
         .start()
 
