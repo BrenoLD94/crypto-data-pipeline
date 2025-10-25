@@ -45,33 +45,20 @@ def get_spark_session(postgres_user,
                       postgres_db="criptoDB", 
                       minio_bucket_name="cripto-data"):
 
-    #spark = SparkSession \
-    #        .builder \
-    #        .appName("cryptoDataPipelineStreaming") \
-    #        .master("spark://spark-master:7077") \
-    #        .config("spark.sql.caseSensitive", "true") \
-    #        .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
-    #        .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.io-impl", "org.apache.iceberg.aws.s3.S3FileIO") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.catalog-impl", "org.apache.iceberg.jdbc.JdbcCatalog") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
-    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
-    #        .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
-    #        .config(f"spark.sql.catalog.{catalog_name}.s3a.endpoint", "http://minio:9000") \
-    #        .config("spark.hadoop.fs.s3a.access.key", minio_user) \
-    #        .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
-    #        .config("spark.hadoop.fs.s3a.path.style.access", "True") \
-    #        .getOrCreate()
-
     spark = SparkSession \
         .builder \
         .appName("cryptoDataPipelineStreaming") \
         .master("spark://spark-master:7077") \
         .config("spark.sql.caseSensitive", "true") \
+        .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
+        .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkSessionCatalog") \
+        .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
+        .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
+        .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
+        .config(f"spark.sql.catalog.{catalog_name}.jdbc.verifyServerCertificate", "False") \
+        .config(f"spark.sql.catalog.{catalog_name}.jdbc.useSSL", "False") \
+        .config(f"spark.sql.catalog.{catalog_name}.jdbc.user", postgres_user) \
+        .config(f"spark.sql.catalog.{catalog_name}.jdbc.password", postgres_password) \
         .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
         .config("spark.hadoop.fs.s3a.access.key", minio_user) \
         .config("spark.hadoop.fs.s3a.secret.key", minio_password) \
@@ -190,7 +177,7 @@ def main():
     catalog_name="cripto_data"
     postgres_db="criptoDB"
     minio_bucket_name = "cripto-data"
-
+    processing_time_window = '15 seconds'
 
     spark = get_spark_session(postgres_user = POSTGRES_USER,
                             postgres_password = POSTGRES_PASSWORD,
@@ -253,9 +240,9 @@ def main():
     # SINK - COLD PATH
     query_raw = df_with_timestamp.writeStream \
         .outputMode("append") \
-        .foreachBatch(write_raw_to_minio) \
+        .foreachBatch(write_raw_to_iceberg) \
         .option("checkpointLocation", f"s3a://{minio_bucket_name}/spark_checkpoints/cold_path_sink") \
-        .trigger(processingTime='15 seconds') \
+        .trigger(processingTime=processing_time_window) \
         .start()
 
 
@@ -273,7 +260,7 @@ def main():
         .outputMode("update") \
         .foreachBatch(lambda batch_df, batch_id: batch_df.foreachPartition(write_influxdb)) \
         .option("checkpointLocation", f"s3a://{minio_bucket_name}/spark_checkpoints/influxdb_sink") \
-        .trigger(processingTime='15 seconds') \
+        .trigger(processingTime=processing_time_window) \
         .start()
 
 
