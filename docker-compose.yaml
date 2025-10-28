@@ -4,7 +4,10 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-  
+    volumes:
+      - ./data/zookeeper/data:/var/lib/zookeeper/data
+      - ./data/zookeeper/log:/var/lib/zookeeper/log
+
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     depends_on:
@@ -23,6 +26,21 @@ services:
 
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
+      - ./data/kafka/data:/var/lib/kafka/data
+  
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    depends_on:
+      - zookeeper
+      - kafka
+    ports:
+      - 8090:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "crypto_cluster" # Um nome para o seu cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:29092" # O endereço INTERNO do kafka
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181" # O endereço do zookeeper
+      DYNAMIC_CONFIG_ENABLED: "true"
+
 
   producer:
     depends_on: 
