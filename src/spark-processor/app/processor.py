@@ -41,7 +41,7 @@ def get_spark_session(postgres_user,
                       postgres_password,
                       minio_user, 
                       minio_password,
-                      catalog_name="iceberg", 
+                      catalog_name, 
                       postgres_db="iceberg", 
                       minio_bucket_name="cripto-data"):
 
@@ -129,7 +129,7 @@ def write_raw_to_iceberg(batch_df, batch_id):
         
         batch_df = batch_df.withColumn("trade_date", sf.to_date(sf.col("event_timestamp")))
 
-        table_name = "cripto_data.bronze.trades_agg"
+        table_name = "cripto_catalog.raw.btc_trades_agg"
 
         if batch_df.sparkSession.catalog.tableExists(table_name):
             batch_df.writeTo(table_name) \
@@ -174,8 +174,8 @@ def write_raw_to_minio(batch_df, batch_id,
         print(f"!!! Erro ao escrever no MinIO: {e}")
 
 def main():
-    catalog_name="cripto_data"
-    postgres_db="criptoDB"
+    catalog_name="cripto_catalog"
+    postgres_db="iceberg"
     minio_bucket_name = "cripto-data"
     processing_time_window = '15 seconds'
 
