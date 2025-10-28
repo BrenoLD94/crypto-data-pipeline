@@ -41,8 +41,8 @@ def get_spark_session(postgres_user,
                       postgres_password,
                       minio_user, 
                       minio_password,
-                      catalog_name="cripto_data", 
-                      postgres_db="criptoDB", 
+                      catalog_name="iceberg", 
+                      postgres_db="iceberg", 
                       minio_bucket_name="cripto-data"):
 
     spark = SparkSession \
@@ -51,7 +51,7 @@ def get_spark_session(postgres_user,
         .master("spark://spark-master:7077") \
         .config("spark.sql.caseSensitive", "true") \
         .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions") \
-        .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkSessionCatalog") \
+        .config(f"spark.sql.catalog.{catalog_name}", "org.apache.iceberg.spark.SparkCatalog") \
         .config(f"spark.sql.catalog.{catalog_name}.type", "jdbc") \
         .config(f"spark.sql.catalog.{catalog_name}.warehouse", f"s3a://{minio_bucket_name}/") \
         .config(f"spark.sql.catalog.{catalog_name}.uri", f"jdbc:postgresql://postgres:5432/{postgres_db}") \
