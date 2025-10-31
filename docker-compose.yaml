@@ -163,3 +163,12 @@ services:
         reservations:
           cpus: '0.25'  # Garante pelo menos 25% de um núcleo
           memory: 512m # Garante pelo menos 512 Megabytes de RAM
+
+  trino:
+    image: trinodb/trino:476
+    ports:
+      - 8070:8080
+    volumes:
+      - ./data/trino/trino-postegres/catalog:/etc/trino/catalog
+    environment:
+      CATALOG_MANAGEMENT: dynamic
