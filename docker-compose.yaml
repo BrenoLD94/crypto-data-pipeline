@@ -1,3 +1,8 @@
+x-spark-common-env: &spark-common-env
+  SPARK_PUBLIC_DNS: "192.168.0.15"
+  AWS_ACCESS_KEY_ID: ${MINIO_USER}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -63,9 +68,7 @@ services:
     volumes:
       - ./src/spark-processor/app:/src/app
     environment:
-      SPARK_PUBLIC_DNS: "192.168.0.15"
-      AWS_ACCESS_KEY_ID: ${MINIO_USER}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+      <<: *spark-common-env
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
   
   spark-worker1:
@@ -78,11 +81,9 @@ services:
     volumes:
       - ./src/spark-processor/app:/src/app
     environment:
+      <<: *spark-common-env
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
-      SPARK_PUBLIC_DNS: "192.168.0.15"
       AWS_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${MINIO_USER}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
 
   spark-processor:
@@ -93,11 +94,9 @@ services:
     ports:
       - 4040:4040
     environment:
-      SPARK_PUBLIC_DNS: "192.168.0.15"
+      <<: *spark-common-env
       INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       AWS_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${MINIO_USER}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/processor.py"]
@@ -172,7 +171,7 @@ services:
     ports:
       - 8070:8080
     volumes:
-      - ./data/trino/trino-postegres/catalog:/etc/trino/catalog
+      - ./infra/trino/catalog/iceberg.properties:/etc/trino/catalog
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -180,3 +179,17 @@ services:
       MINIO_USER: ${MINIO_USER}
       MINIO_PASSWORD: ${MINIO_PASSWORD} 
       CATALOG_MANAGEMENT: dynamic
+
+  # https://github.com/apache/superset/blob/master/docker-compose.yml
+  superset:
+    build:
+      context: ./src/superset/
+    depends_on:
+      - trino
+      - postgres
+    ports:
+      - 8050:8088
+    volumes:
+      - ./data/superset/data:/app/superset_home
+    environment:
+      SQLALCHEMY_DATABASE_URI: postgresql://breno:admin2025@postgres/superset
