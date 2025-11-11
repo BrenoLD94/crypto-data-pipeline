@@ -193,3 +193,4 @@ services:
       - ./data/superset/data:/app/superset_home
     environment:
       SQLALCHEMY_DATABASE_URI: postgresql://breno:admin2025@postgres/superset
+      SECRET_KEY: ${SUPERSET_SECRET_KEY}
