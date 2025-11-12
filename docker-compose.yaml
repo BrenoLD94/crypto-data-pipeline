@@ -184,6 +184,7 @@ services:
   superset:
     build:
       context: ./src/superset/
+    restart: unless-stopped
     depends_on:
       - trino
       - postgres
@@ -191,6 +192,9 @@ services:
       - 8050:8088
     volumes:
       - ./data/superset/data:/app/superset_home
+      - ./infra/superset/superset_config.py:/app/superset_config.py
     environment:
-      SQLALCHEMY_DATABASE_URI: postgresql://breno:admin2025@postgres/superset
-      SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_CONFIG_PATH: "/app/superset_config.py"      
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
