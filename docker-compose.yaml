@@ -87,6 +87,22 @@ services:
       WAIT_HOSTS_1: broker1:29092
       WAIT_HOSTS_2: broker2:29093
 
+  producer-eth:
+    depends_on: 
+      - kafka-broker1
+      - kafka-broker2
+    build:
+      context: src/producer/
+    volumes:
+      - ./src/producer/app:/src/app
+    restart: unless-stopped
+    environment:
+      BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+      KAFKA_TOPIC: trades-eth
+      KEY: ethusdt
+      WAIT_HOSTS_1: broker1:29092
+      WAIT_HOSTS_2: broker2:29093
+
   spark-master:
     depends_on:
       - kafka-broker1

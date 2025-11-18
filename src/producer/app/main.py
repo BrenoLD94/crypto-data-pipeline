@@ -47,7 +47,7 @@ def main():
     binance_client = UMFuturesWebsocketClient(on_message=message_handler, is_combined=True)
     
     # Inscreva-se no stream UMA VEZ
-    logging.info("Inscrevendo no stream de aggTrade para BTCUSDT...")
+    logging.info(f"Inscrevendo no stream de aggTrade para {key}...")
     binance_client.agg_trade(symbol=key)
 
     while True:
