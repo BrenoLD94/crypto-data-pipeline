@@ -13,8 +13,10 @@ services:
       - ./data/zookeeper/data:/var/lib/zookeeper/data
       - ./data/zookeeper/log:/var/lib/zookeeper/log
 
-  kafka:
+  kafka-broker1:
     image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-broker1
+    hostname: broker1
     depends_on:
       - zookeeper
     ports:
@@ -22,43 +24,73 @@ services:
     environment:
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka:29092,EXTERNAL://localhost:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker1:29092,EXTERNAL://localhost:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092'
       KAFKA_BROKER_ID: 1
 
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
-      - ./data/kafka/data:/var/lib/kafka/data
-  
+      - ./data/kafka/broker1:/var/lib/kafka/data
+  kafka-broker2:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-broker2
+    hostname: broker2
+    depends_on:
+      - zookeeper
+    ports:
+      - 9093:9093
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker2:29093,EXTERNAL://localhost:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29093,EXTERNAL://0.0.0.0:9093'
+      KAFKA_BROKER_ID: 2
+
+    volumes:
+      - ./infra/kafka/config.txt:/tmp/config.txt
+      - ./data/kafka/broker2:/var/lib/kafka/data
+
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     depends_on:
       - zookeeper
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
     ports:
       - 8090:8080
     environment:
       KAFKA_CLUSTERS_0_NAME: "crypto_cluster" # Um nome para o seu cluster
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:29092" # O endereço INTERNO do kafka
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker1:29092,broker2:29093" # O endereço INTERNO do kafka
       KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181" # O endereço do zookeeper
       DYNAMIC_CONFIG_ENABLED: "true"
 
 
-  producer:
+  producer-btc:
     depends_on: 
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
     build:
       context: src/producer/
     volumes:
       - ./src/producer/app:/src/app
     restart: unless-stopped
+    environment:
+      BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+      KAFKA_TOPIC: trades-btc
+      KEY: btcusdt
+      WAIT_HOSTS_1: broker1:29092
+      WAIT_HOSTS_2: broker2:29093
 
   spark-master:
     depends_on:
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
       - influxdb
     ports:
       - 8088:8080

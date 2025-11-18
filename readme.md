@@ -61,15 +61,15 @@ graph TD
 
 O fluxo de dados segue as seguintes etapas:
 
-* **- Coleta (`Producer`):** Um serviço em Python se conecta via WebSocket à API da Binance para capturar cada novo trade de BTC/USDT.
-* **- Ingestão e Fila (`Kafka`):** O Producer publica os dados brutos em um tópico no cluster Kafka, que atua como um buffer resiliente e de alta performance.
-* **- Processamento (`Spark`):** Um cluster Spark Standalone (Master + Worker) consome os dados do Kafka em modo streaming, realiza agregações em janelas de tempo (ex: volume e preço médio a cada 10s) e enriquece os dados.
-* **- Armazenamento curto prazo (`InfluxDB`):** O job do Spark salva os dados agregados em um bucket no InfluxDB, um banco de dados otimizado para séries temporais.
-* **- Armazenamento longo prazo (`MinIO`):** O job Spark salva os dados agregados em um bucket no MinIO, um datalake voltado para bigdata e armazenamento de longo prazo. 
-* **- Motor de Consulta (`Trino`):** Trino é o nosso Query Engine, responsável por ler dados massivos de forma rápida.
-* **- Metastore (`Iceberg`):** Ferramenta responsável por adicionar a camada de gerenciamento de metadados no nosso datalake e assim transformando-o em lakehouse.
-* **- Visualização Streaming (`Grafana`):** Um dashboard no Grafana se conecta ao InfluxDB para exibir os dados em gráficos que se atualizam em tempo real.
-* **- Visualização (`Superset`):** Ferramenta de visualização, na qual conectamos direto no Trino. 
+* **Coleta (`Producer`):** Um serviço em Python se conecta via WebSocket à API da Binance para capturar cada novo trade de BTC/USDT.
+* **Ingestão e Fila (`Kafka`):** O Producer publica os dados brutos em um tópico no cluster Kafka, que atua como um buffer resiliente e de alta performance.
+* **Processamento (`Spark`):** Um cluster Spark Standalone (Master + Worker) consome os dados do Kafka em modo streaming, realiza agregações em janelas de tempo (ex: volume e preço médio a cada 10s) e enriquece os dados.
+* **Armazenamento curto prazo (`InfluxDB`):** O job do Spark salva os dados agregados em um bucket no InfluxDB, um banco de dados otimizado para séries temporais.
+* **Armazenamento longo prazo (`MinIO`):** O job Spark salva os dados agregados em um bucket no MinIO, um datalake voltado para bigdata e armazenamento de longo prazo. 
+* **Motor de Consulta (`Trino`):** Trino é o nosso Query Engine, responsável por ler dados massivos de forma rápida.
+* **Metastore (`Iceberg`):** Ferramenta responsável por adicionar a camada de gerenciamento de metadados no nosso datalake e assim transformando-o em lakehouse.
+* **Visualização Streaming (`Grafana`):** Um dashboard no Grafana se conecta ao InfluxDB para exibir os dados em gráficos que se atualizam em tempo real.
+* **Visualização (`Superset`):** Ferramenta de visualização, na qual conectamos direto no Trino. 
 
 ## Tecnologias Utilizadas
 

@@ -1,6 +1,7 @@
 import logging
 import time
 import json 
+import os
 
 from confluent_kafka import Producer
 from binance.lib.utils import config_logging
@@ -19,9 +20,11 @@ from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClie
 #   "m": true,        // Is the buyer the market maker?
 # }
 
-PRODUCER_CONFIG = {"bootstrap.servers": "kafka:29092"}
+BOOTSTRAP_SERVERS = os.getenv("BOOTSTRAP_SERVERS")
+PRODUCER_CONFIG = {"bootstrap.servers": BOOTSTRAP_SERVERS}
 PRODUCER = Producer(PRODUCER_CONFIG)
-KAFKA_TOPIC = "binance-trades-raw"
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC")
+KEY = os.getenv("KEY")
 
 def message_handler(_, message):
     data = json.loads(message)
@@ -38,7 +41,7 @@ def message_handler(_, message):
 def main():
     config_logging(logging, logging.DEBUG)
 
-    key = "btcusdt"
+    key = KEY
 
     # Crie a instância do BINANCE_CLIENT, passando o 'message_handler'
     binance_client = UMFuturesWebsocketClient(on_message=message_handler, is_combined=True)
