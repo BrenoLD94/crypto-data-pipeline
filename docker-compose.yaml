@@ -2,6 +2,15 @@ x-spark-common-env: &spark-common-env
   SPARK_PUBLIC_DNS: "192.168.0.15"
   AWS_ACCESS_KEY_ID: ${MINIO_USER}
   AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+  KAFKA_TOPIC: "trades-btc,trades-eth"
+  KAFKA_BOOSTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+  INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+  INFLUXDB_ORG: ${INFLUXDB_ORG}
+  INFLUXDB_URL: http://influxdb:8086
+  POSTGRES_DB: ${POSTGRES_DB}
+  MINIO_BUCKET: cripto-data
+  CATALOG_NAME: cripto_catalog
+  PROCESSING_TIME_WINDOW: '20 seconds'
 
 services:
   zookeeper:
@@ -123,7 +132,7 @@ services:
     depends_on:
       - spark-master
     ports:
-      - 8089:8081
+      - 8081-8083:8081
     build:
       context: src/spark-processor/
     volumes:
@@ -132,7 +141,20 @@ services:
       <<: *spark-common-env
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
       AWS_REGION: ${AWS_REGION}
+      SPARK_WORKER_CORES: '1'
+      SPARK_WORKER_MEMORY: '2g'
+      SPARK_WORKER_WEBUI_PORT: 8081
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'  # Limita a 50% de um núcleo de CPU
+          memory: 1.5g   # Limita a 1 Gigabyte de RAM
+        reservations:
+          cpus: '0.50'  # Garante pelo menos 25% de um núcleo
+          memory: 512m # Garante pelo menos 512 Megabytes de RAM
 
   spark-processor:
     build:
