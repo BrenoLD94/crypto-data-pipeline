@@ -172,6 +172,7 @@ services:
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--py-files", "/src/app/utils.py", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/processor.py"]
 
   # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pyspark-notebook
+  # Notebook é usado somente para facilitar o desenvolvimento/testes simples no cluster
   spark-notebook:
     image: jupyter/pyspark-notebook:spark-3.4.0
     hostname: spark-notebook
@@ -195,6 +196,8 @@ services:
       - CATALOG_NAME=cripto_catalog
     profiles:
       - manual
+    volumes:
+      - ./data/jupyter-notebook/data:/home/jovyan/work
 
   influxdb:
     image: influxdb:2.7

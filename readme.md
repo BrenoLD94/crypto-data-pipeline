@@ -99,6 +99,7 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
 ├── data/                 # Dados persistidos pelos serviços (IGNORADO PELO GIT)
 │   ├── grafana/
 │   ├── influxdb/
+│   ├── jupyter-notebook/ # <-- Dados persistentes do jupyter notebook
 │   ├── kafka/            # <-- Dados persistentes do Kafka
 │   ├── minio/            # <-- Dados persistentes do MinIO (buckets, objetos)
 │   ├── postgres/         # <-- Dados persistentes do Postgres
