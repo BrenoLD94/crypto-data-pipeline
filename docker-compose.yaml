@@ -3,14 +3,15 @@ x-spark-common-env: &spark-common-env
   AWS_ACCESS_KEY_ID: ${MINIO_USER}
   AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
   KAFKA_TOPIC: "trades-btc,trades-eth"
-  KAFKA_BOOSTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+  KAFKA_BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
   INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
   INFLUXDB_ORG: ${INFLUXDB_ORG}
   INFLUXDB_URL: http://influxdb:8086
   POSTGRES_DB: ${POSTGRES_DB}
   MINIO_BUCKET: cripto-data
   CATALOG_NAME: cripto_catalog
-  PROCESSING_TIME_WINDOW: '20 seconds'
+  PROCESSING_TIME: '20 seconds'
+  SPARK_MASTER_URL: 'spark://spark-master:7077'
 
 services:
   zookeeper:
@@ -39,6 +40,8 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092'
       KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000 
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
@@ -60,6 +63,8 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29093,EXTERNAL://0.0.0.0:9093'
       KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000 
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
@@ -124,6 +129,7 @@ services:
       context: src/spark-processor/
     volumes:
       - ./src/spark-processor/app:/src/app
+    restart: unless-stopped
     environment:
       <<: *spark-common-env
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
@@ -169,7 +175,7 @@ services:
       AWS_REGION: ${AWS_REGION}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--py-files", "/src/app/utils.py", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/processor.py"]
+    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--py-files", "/src/app/app.zip", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/main.py"]
 
   # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pyspark-notebook
   # Notebook é usado somente para facilitar o desenvolvimento/testes simples no cluster
@@ -181,7 +187,7 @@ services:
       - 4041:4040
     environment:
       - JUPYTER_TOKEN=spark
-      - KAFKA_BOOSTSTRAP_SERVERS=broker1:29092,broker2:29093
+      - KAFKA_BOOTSTRAP_SERVERS=broker1:29092,broker2:29093
       - KAFKA_TOPIC=trades-btc,trades-eth
       - INFLUXDB_URL=http://influxdb:8086
       - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
