@@ -43,6 +43,6 @@ SCHEMA_NAME = optional_env("SCHEMA_NAME", "raw")
 TABLE_NAME = optional_env("TABLE_NAME", "trades")
 
 # variaveis windows parametros
-PROCESSING_TIME = require_env("PROCESSING_TIME_WINDOW")
+PROCESSING_TIME = optional_env("PROCESSING_TIME", "20 seconds")
 WATERMARK_DELAY = optional_env("WATERMARK_DELAY", "60 seconds")
 TIME_WINDOW = optional_env("TIME_WINDOW", "30 seconds")
