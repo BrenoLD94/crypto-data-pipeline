@@ -12,7 +12,7 @@ def write_minio_using_iceberg(batch_df, batch_id, schema_name, table_name):
         
         full_table_name = f"{CATALOG_NAME}.{schema_name}.{table_name}"
         
-        total_records = batch_df.counts()
+        total_records = batch_df.count()
 
         batch_df.writeTo(full_table_name) \
             .append()

@@ -122,10 +122,30 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
     │   └── requirements.txt
     │
     ├── spark-processor/
-    │   ├── app/
-    │   │   └── processor.py    # Lógica de streaming do Spark (Hot e Cold paths)
+    │   ├── app/              # Lógica de streaming do Spark (Hot e Cold paths)
+    │   │   ├── main.py
+    │   │   │
+    │   │   ├── config/
+    │   │   │   └── settings.py
+    │   │   │
+    │   │   ├── schema/
+    │   │   │   └── schema.py
+    │   │   │
+    │   │   ├── sources/
+    │   │   │   └── kafka.py
+    │   │   │
+    │   │   ├── transform/
+    │   │   │   └── transformations.py
+    │   │   │
+    │   │   ├── sink/
+    │   │   │   ├── iceberg.py
+    │   │   │   └── influxdb.py
+    │   │   │
+    │   │   └── utils/
+    │   │       └── logging_config.py
     │   ├── Dockerfile
-    │   └── requirements.txt
+    │   ├── requirements.txt
+    |   └── app.zip 
     │
     └── superset/
         └── Dockerfile          # Dockerfile customizado para o Superset (instala drivers)

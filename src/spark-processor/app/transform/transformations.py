@@ -24,6 +24,9 @@ def apply_transformation(df):
         ).withColumn(
             "event_timestamp",
             (sf.col("event_time") / 1000).cast("timestamp")
+        ).withColumn(
+            "trade_date",
+            sf.col("event_timestamp").cast("date")
         )
     )
 
