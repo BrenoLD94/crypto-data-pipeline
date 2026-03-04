@@ -5,6 +5,7 @@ x-spark-common-env: &spark-common-env
   KAFKA_TOPIC: "trades-btc,trades-eth"
   KAFKA_BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
   INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+  INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
   INFLUXDB_ORG: ${INFLUXDB_ORG}
   INFLUXDB_URL: http://influxdb:8086
   POSTGRES_DB: ${POSTGRES_DB}
@@ -171,7 +172,6 @@ services:
       - 4040:4040
     environment:
       <<: *spark-common-env
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
       AWS_REGION: ${AWS_REGION}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
