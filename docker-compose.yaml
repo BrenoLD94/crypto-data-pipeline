@@ -13,6 +13,9 @@ x-spark-common-env: &spark-common-env
   CATALOG_NAME: cripto_catalog
   PROCESSING_TIME: '20 seconds'
   SPARK_MASTER_URL: 'spark://spark-master:7077'
+  AWS_REGION: ${AWS_REGION}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
 services:
   zookeeper:
@@ -147,7 +150,6 @@ services:
     environment:
       <<: *spark-common-env
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
-      AWS_REGION: ${AWS_REGION}
       SPARK_WORKER_CORES: '1'
       SPARK_WORKER_MEMORY: '2g'
       SPARK_WORKER_WEBUI_PORT: 8081
@@ -172,9 +174,6 @@ services:
       - 4040:4040
     environment:
       <<: *spark-common-env
-      AWS_REGION: ${AWS_REGION}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--py-files", "/src/app/app.zip", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/main.py"]
 
   # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pyspark-notebook
