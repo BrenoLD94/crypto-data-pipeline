@@ -1,6 +1,6 @@
 # Crypto Data Pipeline em Tempo Real com Arquitetura Híbrida
 
-Este projeto implementa um pipeline de dados completo e robusto para capturar, processar, armazenar e visualizar dados de trades de criptomoedas (BTC/USDT) em tempo real. A infraestrutura é totalmente orquestrada com **Docker Compose**, criando um ambiente de desenvolvimento e análise completo e facilmente replicável.
+Este projeto implementa um pipeline de dados completo e robusto para capturar, processar, armazenar e visualizar dados de trades de criptomoedas (BTC/USDT) e (ETH/USDT) em tempo real. A infraestrutura é totalmente orquestrada com **Docker Compose**, criando um ambiente de desenvolvimento e análise completo e facilmente replicável.
 
 ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
@@ -61,9 +61,9 @@ graph TD
 
 O fluxo de dados segue as seguintes etapas:
 
-* **Coleta (`Producer`):** Um serviço em Python se conecta via WebSocket à API da Binance para capturar cada novo trade de BTC/USDT.
+* **Coleta (`Producer`):** Um serviço em Python se conecta via WebSocket à API da Binance para capturar cada novo trade de BTC/USDT e ETH/USDT.
 * **Ingestão e Fila (`Kafka`):** O Producer publica os dados brutos em um tópico no cluster Kafka, que atua como um buffer resiliente e de alta performance.
-* **Processamento (`Spark`):** Um cluster Spark Standalone (Master + Worker) consome os dados do Kafka em modo streaming, realiza agregações em janelas de tempo (ex: volume e preço médio a cada 10s) e enriquece os dados.
+* **Processamento (`Spark`):** Um cluster Spark Standalone (Master + Worker) consome os dados do Kafka em modo streaming, realiza agregações em janelas de tempo (ex: volume e preço médio a cada Xs) e enriquece os dados.
 * **Armazenamento curto prazo (`InfluxDB`):** O job do Spark salva os dados agregados em um bucket no InfluxDB, um banco de dados otimizado para séries temporais.
 * **Armazenamento longo prazo (`MinIO`):** O job Spark salva os dados agregados em um bucket no MinIO, um datalake voltado para bigdata e armazenamento de longo prazo. 
 * **Motor de Consulta (`Trino`):** Trino é o nosso Query Engine, responsável por ler dados massivos de forma rápida.
@@ -115,6 +115,10 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
 │       └── catalog/
 │           └── iceberg.properties # Definição do catálogo Iceberg para o Trino
 │
+├── tests/  # Testes que serão/foram realizados
+│   ├── README.md
+│
+│
 └── src/                  # Nosso código customizado
     ├── producer/
     │   ├── app/
@@ -144,6 +148,7 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
     │   │   └── utils/
     │   │       └── logging_config.py
     │   ├── Dockerfile
+    │   ├── README.md
     │   ├── requirements.txt
     |   └── app.zip 
     │
@@ -153,7 +158,14 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
 
 ## Como Executar (Setup e Inicialização)
 
-Siga os passos abaixo para iniciar o pipeline completo.
+Siga os passos abaixo para iniciar o pipeline completo. 
+
+Esse pipeline foi desenvolvido e testado no sistema operacional:
+
+Distributor ID: Ubuntu
+Description:    Ubuntu 22.04.5 LTS
+Release:        22.04
+Codename:       jammy
 
 **Pré-requisitos:**
 
@@ -165,7 +177,7 @@ Siga os passos abaixo para iniciar o pipeline completo.
 
 ### Passo 1: Configurar Variáveis de Ambiente
 
-Crie seu arquivo de ambiente local. (Este projeto não usa um `.env.example`, então crie-o manualmente).
+Crie seu arquivo de ambiente local.
 
 1.  Crie o arquivo:
     ```bash
@@ -318,7 +330,7 @@ Os serviços estão rodando, mas precisam ser "preparados".
 
 ### Passo 6: Acessar as Interfaces (UIs)
 
-* **Kafka UI:** `http://<IP_DA_SUA_VM>:8090` (Veja o tópico `binance-trades-raw`)
+* **Kafka UI:** `http://<IP_DA_SUA_VM>:8090` 
 * **MinIO (S3):** `http://<IP_DA_SUA_VM>:9001` (Login com `MINIO_USER`/`MINIO_PASSWORD`. Veja o bucket `cripto-data`)
 * **Trino:** `http://<IP_DA_SUA_VM>:8070` (Veja o catálogo `iceberg`)
 * **Superset:** `http://<IP_DA_SUA_VM>:8050` (Login com `admin`/`admin`. Conecte ao Trino!)
@@ -326,3 +338,17 @@ Os serviços estão rodando, mas precisam ser "preparados".
 * **InfluxDB:** `http://<IP_DA_SUA_VM>:8086` (Configure seu token)
 * **Spark Master:** `http://<IP_DA_SUA_VM>:8088` (Veja o `spark-processor` rodando)
 * **Spark Job:** `http://<IP_DA_SUA_VM>:4040` (Veja os detalhes do job de streaming)
+* **Spark Notebook:** `http://<IP_DA_SUA_VM>:8888` (Usado para testar código pyspark mais facilmente) 
+
+### Passo 7: Limitações Conhecidas
+* Não tem autoscaling;
+* Cluster Manager está em modo standalone; 
+* Não tem tratativa para o "small file problem";
+* Só existe camada raw;
+* Sem governança de permissão;
+* Existe etapas manuais para deployar o cluster;
+
+### Passo 8: Próximos Passos
+* Implementar Airflow;
+* adicionar processamento batch para arquitetura medalhão;
+* Resolver "small file problem"
