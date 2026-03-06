@@ -49,6 +49,7 @@ def write_influxdb(iterator_of_rows):
     
     except Exception as e:
         logger.exception(f'Error to connect/write to influxDB: {e}')
+        raise 
 
 
 
