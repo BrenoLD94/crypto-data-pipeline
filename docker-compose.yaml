@@ -1,12 +1,36 @@
+x-spark-common-env: &spark-common-env
+  SPARK_PUBLIC_DNS: "192.168.0.15"
+  AWS_ACCESS_KEY_ID: ${MINIO_USER}
+  AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD}
+  KAFKA_TOPIC: "trades-btc,trades-eth"
+  KAFKA_BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+  INFLUXDB_BUCKET: ${INFLUXDB_BUCKET}
+  INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
+  INFLUXDB_ORG: ${INFLUXDB_ORG}
+  INFLUXDB_URL: http://influxdb:8086
+  POSTGRES_DB: ${POSTGRES_DB}
+  MINIO_BUCKET: cripto-data
+  CATALOG_NAME: cripto_catalog
+  PROCESSING_TIME: '20 seconds'
+  SPARK_MASTER_URL: 'spark://spark-master:7077'
+  AWS_REGION: ${AWS_REGION}
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-  
-  kafka:
+    volumes:
+      - ./data/zookeeper/data:/var/lib/zookeeper/data
+      - ./data/zookeeper/log:/var/lib/zookeeper/log
+
+  kafka-broker1:
     image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-broker1
+    hostname: broker1
     depends_on:
       - zookeeper
     ports:
@@ -14,28 +38,93 @@ services:
     environment:
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://kafka:29092,EXTERNAL://localhost:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker1:29092,EXTERNAL://localhost:9092'
       KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
       KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092'
       KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000 
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
     volumes:
       - ./infra/kafka/config.txt:/tmp/config.txt
+      - ./data/kafka/broker1:/var/lib/kafka/data
+  kafka-broker2:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-broker2
+    hostname: broker2
+    depends_on:
+      - zookeeper
+    ports:
+      - 9093:9093
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://broker2:29093,EXTERNAL://localhost:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_LISTENERS: 'INTERNAL://0.0.0.0:29093,EXTERNAL://0.0.0.0:9093'
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000 
+      KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
-  producer:
+    volumes:
+      - ./infra/kafka/config.txt:/tmp/config.txt
+      - ./data/kafka/broker2:/var/lib/kafka/data
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    depends_on:
+      - zookeeper
+      - kafka-broker1
+      - kafka-broker2
+    ports:
+      - 8090:8080
+    environment:
+      KAFKA_CLUSTERS_0_NAME: "crypto_cluster" # Um nome para o seu cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "broker1:29092,broker2:29093" # O endereço INTERNO do kafka
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181" # O endereço do zookeeper
+      DYNAMIC_CONFIG_ENABLED: "true"
+
+
+  producer-btc:
     depends_on: 
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
     build:
       context: src/producer/
     volumes:
       - ./src/producer/app:/src/app
     restart: unless-stopped
+    environment:
+      BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+      KAFKA_TOPIC: trades-btc
+      KEY: btcusdt
+      WAIT_HOSTS_1: broker1:29092
+      WAIT_HOSTS_2: broker2:29093
+
+  producer-eth:
+    depends_on: 
+      - kafka-broker1
+      - kafka-broker2
+    build:
+      context: src/producer/
+    volumes:
+      - ./src/producer/app:/src/app
+    restart: unless-stopped
+    environment:
+      BOOTSTRAP_SERVERS: "broker1:29092,broker2:29093"
+      KAFKA_TOPIC: trades-eth
+      KEY: ethusdt
+      WAIT_HOSTS_1: broker1:29092
+      WAIT_HOSTS_2: broker2:29093
 
   spark-master:
     depends_on:
-      - kafka
+      - kafka-broker1
+      - kafka-broker2
       - influxdb
     ports:
       - 8088:8080
@@ -44,23 +133,37 @@ services:
       context: src/spark-processor/
     volumes:
       - ./src/spark-processor/app:/src/app
+    restart: unless-stopped
     environment:
-      SPARK_PUBLIC_DNS: "192.168.0.15"
+      <<: *spark-common-env
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
   
   spark-worker1:
     depends_on:
       - spark-master
     ports:
-      - 8089:8081
+      - 8081-8083:8081
     build:
       context: src/spark-processor/
     volumes:
       - ./src/spark-processor/app:/src/app
     environment:
+      <<: *spark-common-env
       SPARK_WORKER_DIR: "/opt/spark/work-dir"
-      SPARK_PUBLIC_DNS: "192.168.0.15"
+      SPARK_WORKER_CORES: '1'
+      SPARK_WORKER_MEMORY: '2g'
+      SPARK_WORKER_WEBUI_PORT: 8081
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'  # Limita a 50% de um núcleo de CPU
+          memory: 1.5g   # Limita a 1 Gigabyte de RAM
+        reservations:
+          cpus: '0.50'  # Garante pelo menos 25% de um núcleo
+          memory: 512m # Garante pelo menos 512 Megabytes de RAM
 
   spark-processor:
     build:
@@ -69,12 +172,37 @@ services:
       - spark-master
     ports:
       - 4040:4040
-    volumes:
-      - ./src/spark-processor/app:/app
     environment:
-      SPARK_PUBLIC_DNS: "192.168.0.15"
-      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN}
-    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0", "/app/processor.py"]
+      <<: *spark-common-env
+    command: ["/opt/spark/bin/spark-submit", "--conf", "spark.ui.port=4040", "--py-files", "/src/app/app.zip", "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.apache.iceberg:iceberg-spark-runtime-3.4_2.12:1.10.0,org.postgresql:postgresql:42.7.8", "/src/app/main.py"]
+
+  # https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html#jupyter-pyspark-notebook
+  # Notebook é usado somente para facilitar o desenvolvimento/testes simples no cluster
+  spark-notebook:
+    image: jupyter/pyspark-notebook:spark-3.4.0
+    hostname: spark-notebook
+    ports:
+      - 8888:8888
+      - 4041:4040
+    environment:
+      - JUPYTER_TOKEN=spark
+      - KAFKA_BOOTSTRAP_SERVERS=broker1:29092,broker2:29093
+      - KAFKA_TOPIC=trades-btc,trades-eth
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+      - MINIO_BUCKET=cripto-data
+      - AWS_ACCESS_KEY_ID=${MINIO_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_PASSWORD}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - CATALOG_NAME=cripto_catalog
+    profiles:
+      - manual
+    volumes:
+      - ./data/jupyter-notebook/data:/home/jovyan/work
 
   influxdb:
     image: influxdb:2.7
@@ -102,3 +230,74 @@ services:
       - ./data/grafana:/var/lib/grafana
     command: >
       sh -c "chown -R 472:472 /var/lib/grafana && /run.sh"
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ./data/minio/data:/data
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    command: ["server", "/data", "--console-address", ":9001"]
+  
+  postgres:
+    image: postgres:14
+    restart: unless-stopped
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/postgres/data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+    # --- A SEÇÃO DE RECURSOS PARA DOCKER COMPOSE ---
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'  # Limita a 50% de um núcleo de CPU
+          memory: 1g   # Limita a 1 Gigabyte de RAM
+        reservations:
+          cpus: '0.25'  # Garante pelo menos 25% de um núcleo
+          memory: 512m # Garante pelo menos 512 Megabytes de RAM
+
+  trino:
+    image: trinodb/trino:476
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - 8070:8080
+    volumes:
+      - ./infra/trino/catalog:/etc/trino/catalog
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      MINIO_USER: ${MINIO_USER}
+      MINIO_PASSWORD: ${MINIO_PASSWORD} 
+      CATALOG_MANAGEMENT: dynamic
+
+  # https://github.com/apache/superset/blob/master/docker-compose.yml
+  superset:
+    build:
+      context: ./src/superset/
+    restart: unless-stopped
+    depends_on:
+      - trino
+      - postgres
+    ports:
+      - 8050:8088
+    volumes:
+      - ./data/superset/data:/app/superset_home
+      - ./infra/superset/superset_config.py:/app/superset_config.py
+    environment:
+      SUPERSET_CONFIG_PATH: "/app/superset_config.py"      
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
