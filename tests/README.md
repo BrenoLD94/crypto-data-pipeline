@@ -1,13 +1,8 @@
-````markdown
----
-
 # 🧪 Testes de Resiliência e Recuperação
 
 Esta seção descreve os testes realizados para validar a tolerância a falhas do pipeline e o comportamento do Spark Structured Streaming em diferentes cenários de indisponibilidade.
 
 Os testes abaixo simulam falhas reais de infraestrutura e verificam a capacidade de recuperação automática do sistema.
-
----
 
 ## 🔹 Teste 1 – Falha de Executor (Worker)
 
