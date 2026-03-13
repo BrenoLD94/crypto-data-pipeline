@@ -1,11 +1,13 @@
 # baixa imagem da cofluent para ter os comandos kafka via CLI
 FROM confluentinc/cp-kafka:7.6.1
 
+USER root
+
 # define diretório de trabalho
 WORKDIR /src/infra
 
 # copia script.sh para container
-COPY --chmod=755 ./infra/init/init.sh ./init.sh
+COPY --chmod=755 ./init.sh ./init.sh
 
 # seta script como executável
 RUN chmod +x /src/infra/init.sh
@@ -19,4 +21,4 @@ RUN curl -O https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-
  && chmod +x wait-for-it.sh
 
 # executa o script 
-CMD ["init.sh"]
+CMD ["/src/infra/init.sh"]
