@@ -92,14 +92,12 @@ services:
       - kafka-broker1
       - kafka-broker2
       - minio
-      - postgres
-      - supserset
     build:
       context: infra/init/
     environment:
       MINIO_USER: ${MINIO_USER}
       MINIO_PASSWORD: ${MINIO_PASSWORD}
-      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_BUCKET: cripto-data
 
   producer-btc:
     depends_on: 
@@ -215,7 +213,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
       - CATALOG_NAME=cripto_catalog
     profiles:
-      - manual
+      - manual # tag pra ele não subir automaticamente com os outros containers
     volumes:
       - ./data/jupyter-notebook/data:/home/jovyan/work
 
