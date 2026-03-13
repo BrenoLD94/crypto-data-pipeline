@@ -48,8 +48,8 @@ services:
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
     volumes:
-      - ./infra/kafka/config.txt:/tmp/config.txt
       - ./data/kafka/broker1:/var/lib/kafka/data
+
   kafka-broker2:
     image: confluentinc/cp-kafka:7.6.1
     container_name: kafka-broker2
@@ -71,7 +71,6 @@ services:
       KAFKA_ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000
 
     volumes:
-      - ./infra/kafka/config.txt:/tmp/config.txt
       - ./data/kafka/broker2:/var/lib/kafka/data
 
   kafka-ui:
@@ -88,11 +87,25 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181" # O endereço do zookeeper
       DYNAMIC_CONFIG_ENABLED: "true"
 
+  infra-init:
+    depends_on:
+      - kafka-broker1
+      - kafka-broker2
+      - minio
+      - postgres
+      - supserset
+    build:
+      context: infra/init/
+    environment:
+      MINIO_USER: ${MINIO_USER}
+      MINIO_PASSWORD: ${MINIO_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
 
   producer-btc:
     depends_on: 
       - kafka-broker1
       - kafka-broker2
+      - infra-init
     build:
       context: src/producer/
     volumes:
@@ -109,6 +122,7 @@ services:
     depends_on: 
       - kafka-broker1
       - kafka-broker2
+      - infra-init
     build:
       context: src/producer/
     volumes:
@@ -170,6 +184,7 @@ services:
       context: src/spark-processor/
     depends_on:
       - spark-master
+      - infra-init
     ports:
       - 4040:4040
     environment:

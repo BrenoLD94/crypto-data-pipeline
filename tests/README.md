@@ -3,7 +3,7 @@
 
 # 🧪 Testes de Resiliência e Recuperação
 
-Esta seção descreve os testes realizados e os testes que serão realizados para validar a tolerância a falhas do pipeline e o comportamento do Spark Structured Streaming em diferentes cenários de indisponibilidade.
+Esta seção descreve os testes realizados para validar a tolerância a falhas do pipeline e o comportamento do Spark Structured Streaming em diferentes cenários de indisponibilidade.
 
 Os testes abaixo simulam falhas reais de infraestrutura e verificam a capacidade de recuperação automática do sistema.
 
@@ -17,7 +17,7 @@ Validar o reprocessamento automático de tasks quando um executor é perdido.
 ### Comando
 
 ```bash
-docker compose stop spark-worker1
+docker stop crypto-data-pipeline-spark-worker1-1
 ````
 
 ### Resultado Esperado
@@ -157,10 +157,10 @@ Antes de abrir Pull Request para `main`, valide:
 
 ## Resiliência
 
-* [ ] Worker pode morrer sem interromper pipeline
-* [ ] Driver pode reiniciar e retomar do checkpoint
-* [ ] Kafka pode reiniciar sem perda de dados
-* [ ] Influx pode reiniciar sem quebrar o streaming
+* [x] Worker pode morrer sem interromper pipeline
+* [x] Driver pode reiniciar e retomar do checkpoint
+* [x] Kafka pode reiniciar sem perda de dados
+* [x] Influx pode reiniciar sem quebrar o streaming
 
 ## Reprodutibilidade
 

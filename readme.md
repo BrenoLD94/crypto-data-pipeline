@@ -107,6 +107,9 @@ A organização dos arquivos segue um padrão de monorepo, separando o código d
 │   └── zookeeper/        # <-- Dados persistentes do Zookeeper
 │
 ├── infra/                # Arquivos de configuração versionados
+│   ├── init/             # Configuração container responsável por subir parte da infra
+│   │   └── Dockerfile    # Definição container
+│   │   └── init.sh       # script para automatizar parte da criação da infra
 │   ├── kafka/
 │   │   └── config.txt    # Exemplo de config para um cliente Kafka
 │   ├── superset/
@@ -285,6 +288,7 @@ mkdir -p ./data/zookeeper/data
 # (Assumindo que seu usuário host principal também é o UID 1000)
 sudo chown -R 1000:1000 ./data/kafka/data
 sudo chown -R 1000:1000 ./data/zookeeper/data
+sudo chown -R $USER:$USER data
 
 # Dê permissão de execução
 sudo chmod +x ./src/producer/app/wait-for-it.sh
@@ -347,6 +351,7 @@ Os serviços estão rodando, mas precisam ser "preparados".
 * Só existe camada raw;
 * Sem governança de permissão;
 * Existe etapas manuais para deployar o cluster;
+* Mensagens de exceptions do influxdb não estão aparecendo;
 
 ### Passo 8: Próximos Passos
 * Implementar Airflow;
